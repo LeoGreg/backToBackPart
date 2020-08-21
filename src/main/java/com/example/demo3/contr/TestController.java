@@ -5,7 +5,9 @@ import com.example.demo3.model.Card;
 import com.example.demo3.model.Movie;
 import com.example.demo3.model.Transfer;
 import lombok.extern.log4j.Log4j2;
+import org.apache.tomcat.util.codec.binary.Base64;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.autoconfigure.data.mongo.ReactiveStreamsMongoClientDependsOnBeanFactoryPostProcessor;
 import org.springframework.http.*;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -14,6 +16,7 @@ import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.client.RestClientResponseException;
 import org.springframework.web.client.RestTemplate;
 
+import javax.annotation.PostConstruct;
 import java.util.Date;
 import java.util.List;
 
@@ -25,12 +28,19 @@ public class TestController {
     @Autowired
     private RestTemplate restTemplate;
 
+    private HttpHeaders httpHeaders;
 
-    @GetMapping("/getAll")
-    public ResponseEntity getCards() {
-        List<Card> cards = restTemplate.getForObject("http://localhost:8080/interconnect/get", List.class);
-        System.out.println(cards);
-        return ResponseEntity.ok(cards);
+    @PostConstruct
+    private void init() {
+        String base64 = Base64.encodeBase64String("interconnect_user:interconnect_password".getBytes());
+        httpHeaders = new HttpHeaders();
+        httpHeaders.add("Authorization", "Basic " + base64);
+    }
+
+    @GetMapping("/findMovies")
+    public ResponseEntity getMovies() {
+        ResponseEntity<List> movies = restTemplate.exchange("http://localhost:8080/interconnect/getMovies", HttpMethod.GET, new HttpEntity<>(httpHeaders), List.class);
+        return movies;
     }
 
 
@@ -185,11 +195,7 @@ public class TestController {
 
         try {
 
-            HttpHeaders httpHeaders = new HttpHeaders();
-            httpHeaders.add("Accept", MediaType.APPLICATION_JSON_VALUE);
-
-            HttpEntity<Movie> httpEntity = new HttpEntity<>(movie, httpHeaders);
-            ResponseEntity<Movie> responseEntity = restTemplate.exchange("http://localhost:8080/interconnect/add", HttpMethod.POST, httpEntity, Movie.class);
+            ResponseEntity<Movie> responseEntity = restTemplate.exchange("http://localhost:8080/interconnect/add", HttpMethod.POST, new HttpEntity<>(movie, httpHeaders), Movie.class);
             return responseEntity;
         } catch (RestClientResponseException exception) {
             log.error(">>>" + exception.getMessage() + ":");
@@ -200,5 +206,6 @@ public class TestController {
 
         }
     }
+
 
 }
