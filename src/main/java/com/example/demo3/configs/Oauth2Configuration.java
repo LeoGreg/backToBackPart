@@ -41,6 +41,7 @@ public class Oauth2Configuration extends ResourceServerConfigurerAdapter {
                 .headers().frameOptions().disable()
                 .and().sessionManagement().sessionCreationPolicy(SessionCreationPolicy.STATELESS)
                 .and().authorizeRequests()
+                .antMatchers("/api/hessian").permitAll()
                 .antMatchers("/api/**").authenticated();
     }
 }
